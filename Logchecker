@@ -1,0 +1,47 @@
+#!/bin/ksh -xv
+FILEPATH="/dg_dgfamdusr/dgf/tools/tooladm/users/veenu/veenu/LogMonitoring/output.txt"
+ErrorFilePath="/dg_dgfamdusr/dgf/tools/tooladm/users/veenu/veenu/LogMonitoring/error.txt"
+#echo -e "<html>" >>$ErrorFilePath
+#FONT_TAG1="<font color="red">"
+#FONT_TAG2="</font>"
+
+MAILLIST="veenu.mittal@amdocs.com"
+MAILSUBJECT="Log Checker"
+line_number=0
+cat /dev/null > $FILEPATH
+cat /dev/null > $ErrorFilePath
+keywords=("BEA-000365" "forceReconnect")
+while read -r line;
+        do
+        echo $line >>$FILEPATH
+        line_number=$((line_number + 1))
+        for i in "${keywords[@]}"
+        do
+                if [[ `echo $line | grep $i` ]]
+                then
+                        ALERT_EMAIL="Y"
+                        echo $line_number:$line>>$ErrorFilePath
+                fi
+        done
+        if [[ `echo $line | grep "RUNNING"` ]]
+        then
+                echo "Breaking the Loop at" $line_number
+                break
+        fi
+done < weblogic.20191112_152451.log
+
+echo "Script ran at" `date +"%T"` >>$FILEPATH
+echo "Script ran at" `date +"%T"`  >>$ErrorFilePath
+#echo -e "<html>" >>$ErrorFilePath
+SendTheMail()
+{
+#   /usr/bin/mailx -S "smtp=smtp://dnvdc01" -s "$(echo -e " $MAILSUBJECT  \nContent-Type: text/html")" $MAILLIST < $ErrorFilePath
+/usr/bin/mailx -S "smtp=smtp://dnvdc01" -s "$MAILSUBJECT" -a $FILEPATH $MAILLIST < $ErrorFilePath
+
+        echo -e "\nEmail has been sent!"
+}
+
+if [[ ALERT_EMAIL=="Y" ]]
+then
+        SendTheMail
+fi
